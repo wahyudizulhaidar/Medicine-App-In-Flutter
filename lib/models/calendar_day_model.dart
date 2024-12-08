@@ -8,11 +8,11 @@ class CalendarDayModel {
   int year;
   bool isChecked;
 
-  CalendarDayModel({this.dayLetter,this.dayNumber,this.year, this.month, this.isChecked});
+  CalendarDayModel({required this.dayLetter,required this.dayNumber,required this.year, required this.month, required this.isChecked});
 
   //----------------| get current 7 days |----------------------
   List<CalendarDayModel> getCurrentDays() {
-    final List<CalendarDayModel> daysList = List();
+    final List<CalendarDayModel> daysList = [];
     DateTime currentTime = DateTime.now();
     for (int i = 0; i < 7; i++) {
       daysList.add(CalendarDayModel(

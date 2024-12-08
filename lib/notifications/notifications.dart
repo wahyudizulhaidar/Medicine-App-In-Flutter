@@ -1,76 +1,93 @@
-import 'package:medicine/models/pill.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class Notifications {
+  late BuildContext _context;
 
-  BuildContext _context;
-
-  Future<FlutterLocalNotificationsPlugin> initNotifies(BuildContext context) async{
+  Future<FlutterLocalNotificationsPlugin> initNotifies(
+      BuildContext context) async {
     this._context = context;
-    //-----------------------------| Inicialize local notifications |--------------------------------------
+    //-----------------------------| Initialize local notifications |--------------------------------------
     var initializationSettingsAndroid =
-    new AndroidInitializationSettings('app_icon');
-    var initializationSettingsIOS = new IOSInitializationSettings();
-    var initializationSettings = new InitializationSettings(
+    AndroidInitializationSettings('app_icon');
+    var initializationSettingsIOS = DarwinInitializationSettings();
+    var initializationSettings = InitializationSettings(
         android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
-    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
-    flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onSelectNotification: onSelectNotification);
+    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) {
+        onSelectNotification(notificationResponse.payload);
+      },
+    );
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'medicines_id',
+      'Medicines Notifications',
+      description: 'This channel is used for medicines notifications',
+      importance: Importance.high,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
     return flutterLocalNotificationsPlugin;
     //======================================================================================================
   }
 
-
-
   //---------------------------------| Show the notification in the specific time |-------------------------------
-  Future showNotification(String title, String description, int time, int id, FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin) async {
+  Future showNotification(String title, String description, int time, int id,
+      FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin) async {
     await flutterLocalNotificationsPlugin.zonedSchedule(
         id.toInt(),
         title,
         description,
         tz.TZDateTime.now(tz.local).add(Duration(milliseconds: time)),
         const NotificationDetails(
-            android: AndroidNotificationDetails(
-                'medicines_id', 'medicines', 'medicines_notification_channel',
+            android: AndroidNotificationDetails('medicines_id', 'medicines',
+                channelDescription: 'medicines_notification_channel',
                 importance: Importance.high,
                 priority: Priority.high,
                 color: Colors.cyanAccent)),
-        androidAllowWhileIdle: true,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime);
+            UILocalNotificationDateInterpretation.absoluteTime);
   }
 
   //================================================================================================================
 
-
   //-------------------------| Cancel the notify |---------------------------
-  Future removeNotify(int notifyId, FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin) async{
-    try{
+  Future removeNotify(int notifyId,
+      FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin) async {
+    try {
       return await flutterLocalNotificationsPlugin.cancel(notifyId);
-    }catch(e){
+    } catch (e) {
       return null;
     }
   }
 
   //==========================================================================
 
-
-  //-------------| function to inicialize local notifications |---------------------------
-  Future onSelectNotification(String payload) async {
-    showDialog(
-      context: _context,
-      builder: (_) {
-        return new AlertDialog(
-          title: Text("PayLoad"),
-          content: Text("Payload : $payload"),
-        );
-      },
-    );
+  //-------------| function to initialize local notifications |---------------------------
+  Future onSelectNotification(String? payload) async {
+    if (payload != null) {
+      showDialog(
+        context: _context,
+        builder: (_) {
+          return AlertDialog(
+            title: Text("PayLoad"),
+            content: Text("Payload : $payload"),
+          );
+        },
+      );
+    }
   }
 //======================================================================================
-
-
 }

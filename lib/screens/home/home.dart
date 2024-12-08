@@ -1,14 +1,36 @@
-import 'package:animated_text_kit/animated_text_kit.dart';
+import 'dart:io';
+
 import 'package:animated_widgets/animated_widgets.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../../notifications/notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../../database/repository.dart';
-import '../../models/pill.dart';
-import '../../screens/home/medicines_list.dart';
-import '../../screens/home/calendar.dart';
 import '../../models/calendar_day_model.dart';
+import '../../models/pill.dart';
+import '../../notifications/notifications.dart';
+import '../../screens/home/calendar.dart';
+import '../../screens/home/medicines_list.dart';
+
+Future<void> requestExactAlarmPermission(BuildContext context) async {
+  if (Platform.isAndroid) {
+    if (!await Permission.scheduleExactAlarm.isGranted) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text('Grant Exact Alarm Permission')),
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () {
+                openAppSettings();
+              },
+              child: Text('Open Settings to Grant Permission'),
+            ),
+          ),
+        ),
+      ));
+    }
+  }
+}
 
 class Home extends StatefulWidget {
   @override
@@ -16,21 +38,30 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-
   //-------------------| Flutter notifications |-------------------
   final Notifications _notifications = Notifications();
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
   //===============================================================
 
   //--------------------| List of Pills from database |----------------------
-  List<Pill> allListOfPills = List<Pill>();
+  List<Pill> allListOfPills = [];
   final Repository _repository = Repository();
-  List<Pill> dailyPills = List<Pill>();
+  List<Pill> dailyPills = [];
+
   //=========================================================================
 
   //-----------------| Calendar days |------------------
-  final CalendarDayModel _days = CalendarDayModel();
-  List<CalendarDayModel> _daysList;
+
+  final CalendarDayModel _days = CalendarDayModel(
+    dayLetter: 'M',
+    dayNumber: 1,
+    isChecked: false,
+    month: 12,
+    year: 2024,
+  );
+  late List<CalendarDayModel> _daysList;
+
   //====================================================
 
   //handle last choose day index in calendar
@@ -42,20 +73,38 @@ class _HomeState extends State<Home> {
     initNotifies();
     setData();
     _daysList = _days.getCurrentDays();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      requestExactAlarmPermission(context);
+    });
   }
 
   //init notifications
-  Future initNotifies() async => flutterLocalNotificationsPlugin = await _notifications.initNotifies(context);
-
+  Future initNotifies() async => flutterLocalNotificationsPlugin =
+      await _notifications.initNotifies(context);
 
   //--------------------GET ALL DATA FROM DATABASE---------------------
   Future setData() async {
     allListOfPills.clear();
-    (await _repository.getAllData("Pills")).forEach((pillMap) {
-      allListOfPills.add(Pill().pillMapToObject(pillMap));
-    });
+    var pillsData = await _repository.getAllData("Pills");
+
+    if (pillsData != null) {
+      pillsData.forEach((pillMap) {
+        // Pastikan parameter 'id' dan yang lainnya diberikan
+        allListOfPills.add(Pill(
+            id: pillMap['id'],
+            name: pillMap['name'],
+            amount: pillMap['amount'],
+            type: pillMap['type'],
+            howManyWeeks: pillMap['howManyWeeks'],
+            medicineForm: pillMap['medicineForm'],
+            time: pillMap['time'],
+            notifyId: pillMap['notifyId']));
+      });
+    }
+
     chooseDay(_daysList[_lastChooseDay]);
   }
+
   //===================================================================
 
   @override
@@ -104,8 +153,8 @@ class _HomeState extends State<Home> {
                           "Journal",
                           style: Theme.of(context)
                               .textTheme
-                              .headline1
-                              .copyWith(color: Colors.black),
+                              .displayLarge
+                              ?.copyWith(color: Colors.black),
                         ),
                         ShakeAnimatedWidget(
                           enabled: true,
@@ -126,26 +175,26 @@ class _HomeState extends State<Home> {
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 5.0),
-                  child: Calendar(chooseDay,_daysList),
+                  child: Calendar(chooseDay, _daysList),
                 ),
                 SizedBox(height: deviceHeight * 0.03),
                 dailyPills.isEmpty
                     ? SizedBox(
                         width: double.infinity,
                         height: 100,
-                        child: WavyAnimatedTextKit(
-                          textStyle: TextStyle(
+                        child: Center(
+                          child: Text(
+                            'No Reminder',
+                            style: TextStyle(
                               fontSize: 32.0,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black),
-                          text: [
-                            "Loading..."
-                          ],
-                          isRepeatingAnimation: true,
-                          speed: Duration(milliseconds: 150),
+                              color: Colors.black,
+                            ),
+                          ),
                         ),
                       )
-                    : MedicinesList(dailyPills,setData,flutterLocalNotificationsPlugin)
+                    : MedicinesList(
+                        dailyPills, setData, flutterLocalNotificationsPlugin)
               ],
             ),
           ),
@@ -154,27 +203,27 @@ class _HomeState extends State<Home> {
     );
   }
 
-
   //-------------------------| Click on the calendar day |-------------------------
 
-  void chooseDay(CalendarDayModel clickedDay){
+  void chooseDay(CalendarDayModel clickedDay) {
     setState(() {
       _lastChooseDay = _daysList.indexOf(clickedDay);
-      _daysList.forEach((day) => day.isChecked = false );
+      _daysList.forEach((day) => day.isChecked = false);
       CalendarDayModel chooseDay = _daysList[_daysList.indexOf(clickedDay)];
       chooseDay.isChecked = true;
       dailyPills.clear();
       allListOfPills.forEach((pill) {
-        DateTime pillDate = DateTime.fromMicrosecondsSinceEpoch(pill.time * 1000);
-        if(chooseDay.dayNumber == pillDate.day && chooseDay.month == pillDate.month && chooseDay.year == pillDate.year){
+        DateTime pillDate =
+            DateTime.fromMicrosecondsSinceEpoch(pill.time * 1000);
+        if (chooseDay.dayNumber == pillDate.day &&
+            chooseDay.month == pillDate.month &&
+            chooseDay.year == pillDate.year) {
           dailyPills.add(pill);
         }
       });
-      dailyPills.sort((pill1,pill2) => pill1.time.compareTo(pill2.time));
+      dailyPills.sort((pill1, pill2) => pill1.time.compareTo(pill2.time));
     });
   }
 
-  //===============================================================================
-
-
+//===============================================================================
 }

@@ -9,14 +9,14 @@ class Pill {
   int notifyId;
 
   Pill(
-      {this.id,
-      this.howManyWeeks,
-      this.time,
-      this.amount,
-      this.medicineForm,
-      this.name,
-      this.type,
-      this.notifyId});
+      {required this.id,
+      required this.howManyWeeks,
+      required this.time,
+      required this.amount,
+      required this.medicineForm,
+      required this.name,
+      required this.type,
+      required this.notifyId});
 
   //------------------set pill to map-------------------
 
@@ -38,29 +38,36 @@ class Pill {
   //---------------------create pill object from map---------------------
   Pill pillMapToObject(Map<String, dynamic> pillMap) {
     return Pill(
-        id: pillMap['id'],
-        name: pillMap['name'],
-        amount: pillMap['amount'],
-        type: pillMap['type'],
-        howManyWeeks: pillMap['howManyWeeks'],
-        medicineForm: pillMap['medicineForm'],
-        time: pillMap['time'],
-        notifyId: pillMap['notifyId']);
+        id: pillMap['id'] ?? 0, // Default jika 'id' null
+        name: pillMap['name'] ?? '', // Default jika 'name' null
+        amount: pillMap['amount'] ?? '', // Default jika 'amount' null
+        type: pillMap['type'] ?? '', // Default jika 'type' null
+        howManyWeeks: pillMap['howManyWeeks'] ?? 0, // Default jika 'howManyWeeks' null
+        medicineForm: pillMap['medicineForm'] ?? '', // Default jika 'medicineForm' null
+        time: pillMap['time'] ?? 0, // Default jika 'time' null
+        notifyId: pillMap['notifyId'] ?? 0 // Default jika 'notifyId' null
+    );
   }
 //=====================================================================
 
-
-  //---------------------| Get the medicine image path |-------------------------
-  String get image{
-    switch(this.medicineForm){
-      case "Syrup": return "assets/images/syrup.png"; break;
-      case "Pill":return "assets/images/pills.png"; break;
-      case "Capsule":return "assets/images/capsule.png"; break;
-      case "Cream":return "assets/images/cream.png"; break;
-      case "Drops":return "assets/images/drops.png"; break;
-      case "Syringe":return "assets/images/syringe.png"; break;
-      default : return "assets/images/pills.png"; break;
+  //---------------------| Get the medicines image path |-------------------------
+  String get image {
+    switch (this.medicineForm) {
+      case "Syrup":
+        return "assets/images/syrup.png";
+      case "Pill":
+        return "assets/images/pills.png";
+      case "Capsule":
+        return "assets/images/capsule.png";
+      case "Cream":
+        return "assets/images/cream.png";
+      case "Drops":
+        return "assets/images/drops.png";
+      case "Syringe":
+        return "assets/images/syringe.png";
+      default:
+        return "assets/images/pills.png";
     }
   }
-  //=============================================================================
+//=============================================================================
 }

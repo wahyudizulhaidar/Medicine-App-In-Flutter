@@ -5,6 +5,7 @@ import 'package:medicine/database/repository.dart';
 import 'package:medicine/models/pill.dart';
 import 'package:medicine/notifications/notifications.dart';
 
+
 class MedicineCard extends StatelessWidget {
 
   final Pill medicine;
@@ -14,7 +15,7 @@ class MedicineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //check if the medicine time is lower than actual
+    //check if the medicines time is lower than actual
     final bool isEnd = DateTime.now().millisecondsSinceEpoch > medicine.time;
 
     return Card(
@@ -30,7 +31,7 @@ class MedicineCard extends StatelessWidget {
                 EdgeInsets.symmetric(vertical: 15.0, horizontal: 15.0),
             title: Text(
               medicine.name,
-              style: Theme.of(context).textTheme.headline1.copyWith(
+              style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   color: Colors.black,
                   fontSize: 20.0,
                   decoration: isEnd ? TextDecoration.lineThrough : null),
@@ -39,7 +40,7 @@ class MedicineCard extends StatelessWidget {
             ),
             subtitle: Text(
               "${medicine.amount} ${medicine.medicineForm}",
-              style: Theme.of(context).textTheme.headline5.copyWith(
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Colors.grey[600],
                   fontSize: 15.0,
                   decoration: isEnd ? TextDecoration.lineThrough : null),
@@ -84,12 +85,14 @@ class MedicineCard extends StatelessWidget {
         context: context,
         builder: (context) => AlertDialog(
               title: Text("Delete ?"),
-              content: Text("Are you sure to delete $medicineName medicine?"),
+              content: Text("Are you sure to delete $medicineName medicines?"),
               contentTextStyle:
                   TextStyle(fontSize: 17.0, color: Colors.grey[800]),
               actions: [
-                FlatButton(
-                  splashColor: Theme.of(context).primaryColor.withOpacity(0.3),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).primaryColor, splashFactory: InkRipple.splashFactory, disabledForegroundColor: Theme.of(context).primaryColor.withOpacity(0.3).withOpacity(0.38),
+                  ),
                   child: Text(
                     "Cancel",
                     style: TextStyle(color: Theme.of(context).primaryColor),
@@ -98,10 +101,14 @@ class MedicineCard extends StatelessWidget {
                     Navigator.of(context).pop();
                   },
                 ),
-                FlatButton(
-                  splashColor: Theme.of(context).primaryColor.withOpacity(0.3),
-                  child: Text("Delete",
-                      style: TextStyle(color: Theme.of(context).primaryColor)),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).primaryColor, splashFactory: InkRipple.splashFactory, disabledForegroundColor: Theme.of(context).primaryColor.withOpacity(0.3).withOpacity(0.38),
+                  ),
+                  child: Text(
+                    "Delete",
+                    style: TextStyle(color: Theme.of(context).primaryColor),
+                  ),
                   onPressed: () async {
                     await Repository().deleteData('Pills', medicineId);
                     await Notifications().removeNotify(notifyId, flutterLocalNotificationsPlugin);
